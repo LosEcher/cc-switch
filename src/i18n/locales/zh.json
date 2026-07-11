@@ -386,7 +386,9 @@
         "mediaFallback": "不支持图片降级",
         "mediaFallbackDescription": "当供应商不支持图片输入时（已声明纯文本能力，或上游返回不支持图片的错误），自动将图片块替换为 [Unsupported Image] 标记，使对话不中断",
         "mediaHeuristic": "启发式纯文本模型识别",
-        "mediaHeuristicDescription": "发送前按内置模型名列表预测性剥离图片。关闭后仅保留「已声明纯文本」与「上游报错兜底」两条事实驱动路径，避免内置列表把多模态模型误判为纯文本而静默丢图"
+        "mediaHeuristicDescription": "发送前按内置模型名列表预测性剥离图片。关闭后仅保留「已声明纯文本」与「上游报错兜底」两条事实驱动路径，避免内置列表把多模态模型误判为纯文本而静默丢图",
+        "attributionStrip": "Claude Code 归因头剥离",
+        "attributionStripDescription": "转发前从 system prompt 首部移除 Claude Code 注入的 x-anthropic-billing-header，减少动态内容对上游 prompt cache 的影响"
       },
       "optimizer": {
         "title": "Bedrock 请求优化器",

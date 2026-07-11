@@ -1305,6 +1305,17 @@ impl RequestForwarder {
                     provider,
                     api_format,
                 );
+                if self.rectifier_config.enabled
+                    && self.rectifier_config.request_attribution_strip
+                    && super::attribution_stripper::strip_attribution_from_system(
+                        &mut mapped_body,
+                    )
+                {
+                    log::debug!(
+                        "[{}] Stripped Claude Code attribution header before forwarding",
+                        app_type.as_str()
+                    );
+                }
                 self.apply_media_prevention(&mut mapped_body, provider);
             }
         }
@@ -4273,5 +4284,34 @@ mod tests {
         });
         let body = body_with_image("any-model");
         assert!(fwd.media_retry_should_trigger("Claude", false, &body, &image_unsupported_error()));
+    }
+
+    #[test]
+    fn attribution_strip_is_gated_by_rectifier_config() {
+        let mut enabled_body = json!({
+            "system": "x-anthropic-billing-header: cc_version=2.1.119.47e; cc_entrypoint=sdk-cli; cch=a7754;\n\nStable prompt",
+            "messages": [{"role": "user", "content": "hello"}]
+        });
+        let enabled = RectifierConfig::default();
+        if enabled.enabled && enabled.request_attribution_strip {
+            crate::proxy::attribution_stripper::strip_attribution_from_system(&mut enabled_body);
+        }
+        assert_eq!(enabled_body["system"], "Stable prompt");
+
+        let mut disabled_body = json!({
+            "system": "x-anthropic-billing-header: cc_version=2.1.119.47e; cc_entrypoint=sdk-cli; cch=a7754;\n\nStable prompt",
+            "messages": [{"role": "user", "content": "hello"}]
+        });
+        let disabled = RectifierConfig {
+            request_attribution_strip: false,
+            ..RectifierConfig::default()
+        };
+        if disabled.enabled && disabled.request_attribution_strip {
+            crate::proxy::attribution_stripper::strip_attribution_from_system(&mut disabled_body);
+        }
+        assert!(disabled_body["system"]
+            .as_str()
+            .unwrap()
+            .starts_with("x-anthropic-billing-header:"));
     }
 }

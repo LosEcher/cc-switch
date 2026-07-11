@@ -226,6 +226,12 @@ pub struct RectifierConfig {
     /// 避免内置列表把多模态模型误判成 text-only 而静默剥图。
     #[serde(default = "default_true")]
     pub request_media_heuristic: bool,
+    /// 请求整流：剥离 Claude Code 归因头（默认开启）
+    ///
+    /// Claude Code 会在 system prompt 首部注入 `x-anthropic-billing-header`。
+    /// 该头包含动态值，透传到上游会降低 prompt cache 命中率。
+    #[serde(default = "default_true")]
+    pub request_attribution_strip: bool,
 }
 
 fn default_true() -> bool {
@@ -244,6 +250,7 @@ impl Default for RectifierConfig {
             request_thinking_budget: true,
             request_media_fallback: true,
             request_media_heuristic: true,
+            request_attribution_strip: true,
         }
     }
 }
@@ -409,6 +416,7 @@ mod tests {
             config.request_media_heuristic,
             "启发式 text-only 模型识别默认应为 true"
         );
+        assert!(config.request_attribution_strip, "归因头剥离默认应为 true");
     }
 
     #[test]
@@ -427,6 +435,7 @@ mod tests {
             config.request_media_heuristic,
             "缺 requestMediaHeuristic 时应回退默认值 true"
         );
+        assert!(config.request_attribution_strip);
     }
 
     #[test]
@@ -453,10 +462,11 @@ mod tests {
     #[test]
     fn test_rectifier_config_serde_media_explicit_false() {
         // 验证 media 两字段显式 false 时被如实反序列化（用户主动关闭须生效，不能被默认值覆盖）
-        let json = r#"{"requestMediaFallback": false, "requestMediaHeuristic": false}"#;
+        let json = r#"{"requestMediaFallback": false, "requestMediaHeuristic": false, "requestAttributionStrip": false}"#;
         let config: RectifierConfig = serde_json::from_str(json).unwrap();
         assert!(!config.request_media_fallback);
         assert!(!config.request_media_heuristic);
+        assert!(!config.request_attribution_strip);
         // 其余字段仍走默认 true
         assert!(config.enabled);
         assert!(config.request_thinking_signature);

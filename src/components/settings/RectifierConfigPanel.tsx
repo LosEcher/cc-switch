@@ -17,6 +17,7 @@ export function RectifierConfigPanel() {
     requestThinkingBudget: true,
     requestMediaFallback: true,
     requestMediaHeuristic: true,
+    requestAttributionStrip: true,
   });
   const [optimizerConfig, setOptimizerConfig] = useState<OptimizerConfig>({
     enabled: false,
@@ -140,6 +141,21 @@ export function RectifierConfigPanel() {
             disabled={!config.enabled || !config.requestMediaFallback}
             onCheckedChange={(checked) =>
               handleChange({ requestMediaHeuristic: checked })
+            }
+          />
+        </div>
+        <div className="flex items-center justify-between pl-4">
+          <div className="space-y-0.5">
+            <Label>{t("settings.advanced.rectifier.attributionStrip")}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.advanced.rectifier.attributionStripDescription")}
+            </p>
+          </div>
+          <Switch
+            checked={config.requestAttributionStrip}
+            disabled={!config.enabled}
+            onCheckedChange={(checked) =>
+              handleChange({ requestAttributionStrip: checked })
             }
           />
         </div>
