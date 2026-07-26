@@ -36,7 +36,9 @@ import {
 } from "@/lib/api/model-fetch";
 import { CustomUserAgentField } from "./CustomUserAgentField";
 import { LocalProxyRequestOverridesField } from "./LocalProxyRequestOverridesField";
+import { CodexModelCatalogImport } from "./CodexModelCatalogImport";
 import { cn } from "@/lib/utils";
+import { mergeModelsIntoCodexCatalog } from "@/utils/codexModelCatalog";
 import type {
   ClaudeApiKeyField,
   CodexApiFormat,
@@ -451,10 +453,9 @@ export function CodexFormFields({
     return suggestions;
   }, [catalogRows, fetchedModels, t]);
 
-  // 填了映射时才提示"默认模型不在映射中"（无映射的供应商本来就直接请求任意模型名）
+  // 默认模型未加入映射时始终给出入口，包括尚未创建目录的供应商。
   const trimmedDefaultModel = codexModel.trim();
   const isDefaultModelOutsideCatalog =
-    catalogRows.length > 0 &&
     !!trimmedDefaultModel &&
     !catalogRows.some((row) => row.model.trim() === trimmedDefaultModel);
 
@@ -469,8 +470,27 @@ export function CodexFormFields({
     ]);
   }, [onCatalogModelsChange, trimmedDefaultModel]);
 
+  const handleImportModels = useCallback(
+    (modelIds: string[]) => {
+      if (modelIds.length === 0) return;
+      setCatalogRows((current) =>
+        mergeModelsIntoCodexCatalog(current, modelIds).map((model, index) => {
+          const existing = current[index];
+          return existing ?? createCatalogRow(model);
+        }),
+      );
+      toast.success(
+        t("codexConfig.importCatalogModelsSuccess", {
+          count: modelIds.length,
+          defaultValue: "已导入 {{count}} 个模型",
+        }),
+      );
+    },
+    [t],
+  );
+
   const renderCatalogActionButtons = (onAdd: () => void, addLabel: string) => (
-    <div className="flex gap-1">
+    <div className="flex w-full flex-wrap justify-start gap-1 sm:w-auto sm:justify-end">
       <Button
         type="button"
         variant="outline"
@@ -486,6 +506,11 @@ export function CodexFormFields({
         )}
         {t("providerForm.fetchModels")}
       </Button>
+      <CodexModelCatalogImport
+        fetchedModels={fetchedModels}
+        catalogModels={catalogRows}
+        onImport={handleImportModels}
+      />
       <Button
         type="button"
         variant="outline"
@@ -921,7 +946,7 @@ export function CodexFormFields({
                 )}
               >
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <FormLabel>
                       {t("codexConfig.modelMappingTitle", {
                         defaultValue: "模型映射",
